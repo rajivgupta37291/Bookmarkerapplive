@@ -67,49 +67,73 @@ export default function BookmarkForm() {
 
   return (
     <form onSubmit={addBookmark} className="space-y-4">
+      {/* Error alert */}
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-          {error}
+        <div className="animate-fade-in-up p-4 bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm font-medium flex items-start gap-3">
+          <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
+          <div>
+            <p className="font-semibold">Error</p>
+            <p className="text-red-600 text-xs mt-0.5">{error}</p>
+          </div>
         </div>
       )}
+
+      {/* Success alert */}
       {success && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
-          ✓ Bookmark added successfully!
+        <div className="animate-fade-in-up p-4 bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 border-l-4 border-emerald-500 rounded-lg text-emerald-700 text-sm font-medium flex items-center gap-3">
+          <span className="text-lg">✨</span>
+          <p>Bookmark added successfully!</p>
         </div>
       )}
-      <div>
+
+      {/* Title input */}
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-slate-700">
+          <span className="inline-flex items-center gap-1.5">
+            <span>📝</span> Bookmark Title
+          </span>
+        </label>
         <input
-          placeholder="Bookmark title"
+          placeholder="e.g., GitHub, YouTube, Stack Overflow"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          className="input-modern placeholder:text-slate-400"
           disabled={loading}
         />
       </div>
-      <div>
+
+      {/* URL input */}
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-slate-700">
+          <span className="inline-flex items-center gap-1.5">
+            <span>🔗</span> Website URL
+          </span>
+        </label>
         <input
           type="url"
           placeholder="https://example.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          className="input-modern placeholder:text-slate-400"
           disabled={loading}
         />
       </div>
+
+      {/* Submit button */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+        className="w-full btn-gradient text-white px-6 py-3 rounded-lg font-bold text-base flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-6"
       >
         {loading ? (
           <>
-            <span className="inline-block animate-spin">⊙</span>
-            Adding...
+            <span className="inline-block animate-spin">✨</span>
+            <span>Adding...</span>
           </>
         ) : (
           <>
             <span>➕</span>
-            Add Bookmark
+            <span>Add Bookmark</span>
           </>
         )}
       </button>

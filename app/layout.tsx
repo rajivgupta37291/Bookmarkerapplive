@@ -13,8 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased">
+    <html lang="en" className="scroll-smooth">
+      <body className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900 antialiased">
         {children}
       </body>
     </html>
