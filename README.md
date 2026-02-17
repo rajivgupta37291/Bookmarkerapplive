@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smart Bookmark App 📌
 
-## Getting Started
+A fast, modern bookmark manager built with Next.js and Supabase. Save and organize your favorite websites with real-time synchronization.
 
-First, run the development server:
+## Features ✨
+
+- 🔐 **Google OAuth** - Secure authentication
+- 📌 **Add Bookmarks** - Save URLs with titles
+- 🔄 **Real-time Sync** - Instant updates across tabs
+- 🗑️ **Delete Bookmarks** - Remove items anytime
+- 👤 **Private** - Only see your own bookmarks
+- ⚡ **Fast** - Built with Next.js App Router
+- 🌐 **Live on Vercel** - Production ready
+
+## Tech Stack
+
+- Next.js 16+, React 19, TypeScript
+- Supabase (Auth + PostgreSQL + Real-time)
+- Tailwind CSS 4
+
+## Quick Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Create Supabase tables (in SQL editor)
+
+```sql
+CREATE TABLE bookmarks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_bookmarks_user_id ON bookmarks(user_id);
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "view_own" ON bookmarks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "insert_own" ON bookmarks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "delete_own" ON bookmarks FOR DELETE USING (auth.uid() = user_id);
+```
+
+### 3. Add Google OAuth in Supabase Authentication
+
+### 4. Create `.env.local`
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+```
+
+### 5. Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deployment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Push to GitHub
+2. Connect to Vercel
+3. Add environment variables
+4. Deploy!
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Usage
 
-## Learn More
+- **Login**: Google OAuth
+- **Add**: Enter title & URL
+- **View**: See all bookmarks (real-time!)
+- **Delete**: Click ❌
+- **Logout**: Top right button
 
-To learn more about Next.js, take a look at the following resources:
+## Real-time Magic ✨
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open multiple tabs and watch bookmarks sync instantly!
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Troubleshooting
 
-## Deploy on Vercel
+| Problem       | Solution                              |
+| ------------- | ------------------------------------- |
+| URL not set   | Restart dev server after `.env.local` |
+| OAuth failing | Check redirect URIs are set correctly |
+| No bookmarks  | Verify RLS policies are enabled       |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT - Build amazing things!
