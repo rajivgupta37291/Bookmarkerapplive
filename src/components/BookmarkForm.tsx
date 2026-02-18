@@ -89,7 +89,7 @@ export default function BookmarkForm() {
       {/* Title input */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-slate-700">
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 text-xl">
             <span>📝</span> Bookmark Title
           </span>
         </label>
@@ -105,7 +105,7 @@ export default function BookmarkForm() {
       {/* URL input */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-slate-700">
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 text-xl">
             <span>🔗</span> Website URL
           </span>
         </label>

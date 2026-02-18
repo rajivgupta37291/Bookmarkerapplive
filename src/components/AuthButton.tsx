@@ -28,7 +28,7 @@ export default function AuthButton() {
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="max-w-full max-h-full space-y-6 p-4 rounded-xl ">
       {error && (
         <div className="animate-fade-in-up p-4 bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm font-medium flex items-center gap-2">
           <span className="text-lg">⚠️</span>
@@ -38,7 +38,7 @@ export default function AuthButton() {
       <button
         onClick={login}
         disabled={loading}
-        className="w-full btn-gradient text-white px-6 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group"
+        className="w-full btn-gradient text-white px-6 py-12  rounded-xl font-bold text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed group"
       >
         {loading ? (
           <>
@@ -57,7 +57,7 @@ export default function AuthButton() {
           </>
         )}
       </button>
-      <p className="text-center text-slate-500 text-xs pt-2">
+      <p className="  text-center text-slate-500 text-xs pt-2">
         One-click login • No password needed • Your data is private
       </p>
     </div>

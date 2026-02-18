@@ -36,14 +36,14 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen py-8 px-4 md:py-12">
+    <main className="min-h-screen py-8 px-4 md:py-12 flex flex-col items-center justify-start w-full">
       {/* Decorative background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-indigo-200 to-blue-200 rounded-full opacity-15 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-200 to-indigo-200 rounded-full opacity-15 blur-3xl"></div>
       </div>
 
-      <div className="max-w-3xl mx-auto space-y-6 animate-fade-in-up">
+      <div className="w-full max-w-3xl space-y-6 animate-fade-in-up">
         <Navbar />
         
         {/* Add Bookmark Section */}

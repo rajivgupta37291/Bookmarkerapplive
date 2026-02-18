@@ -44,8 +44,7 @@ export default function Navbar() {
             </h1>
             {user?.email && (
               <p className="text-xs md:text-sm text-slate-600 mt-1 flex items-center gap-1.5">
-                <span>👤</span>
-                <span className="font-medium">{user.email}</span>
+                <span className="font-medium">👤{" "+ user.email}</span>
               </p>
             )}
           </div>
@@ -55,7 +54,7 @@ export default function Navbar() {
         <button
           onClick={logout}
           disabled={loading}
-          className="w-full md:w-auto btn-gradient-red text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="w-full md:w-auto btn-gradient-red text-white px-3 py-3 rounded-lg font-semibold flex items-center justify-center gap-0.5  shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {loading ? (
             <>
@@ -63,10 +62,10 @@ export default function Navbar() {
               <span>Signing out...</span>
             </>
           ) : (
-            <>
-              <span className="text-lg">🚪</span>
+            <div className="flex">
+              <span className=" w-6 justify-center items-center size-3">🚪</span>
               <span>Logout</span>
-            </>
+            </div>
           )}
         </button>
       </div>

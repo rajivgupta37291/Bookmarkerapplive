@@ -18,9 +18,13 @@ export default function BookmarkList() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [newBookmarkId, setNewBookmarkId] = useState<string | null>(null);
 
   const fetchBookmarks = async (userId: string) => {
     try {
+      setSyncing(true);
       const { data, error: fetchError } = await supabase
         .from("bookmarks")
         .select("*")
@@ -30,53 +34,102 @@ export default function BookmarkList() {
       if (fetchError) {
         setError(fetchError.message);
       } else if (data) {
-        setBookmarks(data);
+        // Compare to find new bookmarks
+        const oldIds = new Set(bookmarks.map(b => b.id));
+        const newData = data as Bookmark[];
+        const newBookmarks = newData.filter(b => !oldIds.has(b.id));
+        
+        setBookmarks(newData);
+        setLastSynced(new Date());
+        
+        // Highlight new bookmark briefly
+        if (newBookmarks.length > 0 && newBookmarks[0]) {
+          setNewBookmarkId(newBookmarks[0].id);
+          setTimeout(() => setNewBookmarkId(null), 2000);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch bookmarks");
     } finally {
       setLoading(false);
+      setSyncing(false);
     }
   };
 
   useEffect(() => {
+    let channel: RealtimeChannel | null = null;
+    let isMounted = true;
+    let subscriptionTimeout: NodeJS.Timeout | null = null;
+
     const initializeAndFetch = async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session?.user?.id) {
-          setCurrentUserId(sessionData.session.user.id);
-          await fetchBookmarks(sessionData.session.user.id);
+        if (sessionData.session?.user?.id && isMounted) {
+          const userId = sessionData.session.user.id;
+          setCurrentUserId(userId);
+          await fetchBookmarks(userId);
 
-          // Set up real-time subscription for this user's bookmarks
-          const channel: RealtimeChannel = supabase
-            .channel(`bookmarks:${sessionData.session.user.id}`)
-            .on(
-              "postgres_changes",
-              {
-                event: "*",
-                schema: "public",
-                table: "bookmarks",
-                filter: `user_id=eq.${sessionData.session.user.id}`,
-              },
-              () => {
-                fetchBookmarks(sessionData.session.user.id);
-              }
-            )
-            .subscribe();
+          // Set up real-time subscription with proper callback handling
+          return new Promise<void>((resolve) => {
+            channel = supabase
+              .channel(`bookmarks:${userId}`, {
+                config: {
+                  broadcast: { self: true },
+                  presence: { key: userId },
+                },
+              })
+              .on(
+                "postgres_changes",
+                {
+                  event: "*",
+                  schema: "public",
+                  table: "bookmarks",
+                  filter: `user_id=eq.${userId}`,
+                },
+                (payload) => {
+                  if (isMounted) {
+                    console.log("Real-time update received:", payload);
+                    fetchBookmarks(userId);
+                  }
+                }
+              )
+              .on("system", { event: "*" }, (payload) => {
+                if (isMounted && payload.message === "token_refreshed") {
+                  setError(null);
+                }
+              })
+              .subscribe((status, err) => {
+                if (err) {
+                  console.error("Real-time subscription error:", err);
+                  setError("Real-time connection failed");
+                } else if (status === "SUBSCRIBED") {
+                  console.log("Subscribed to real-time updates");
+                  if (isMounted) {
+                    setError(null);
+                  }
+                  resolve();
+                }
+              });
 
-          return () => {
-            supabase.removeChannel(channel);
-          };
+            // Timeout for subscription - if not subscribed after 5s, resolve anyway
+            subscriptionTimeout = setTimeout(() => {
+              resolve();
+            }, 5000);
+          });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to initialize");
       }
     };
 
-    const cleanup = initializeAndFetch();
+    initializeAndFetch();
 
     return () => {
-      cleanup?.then((fn) => fn?.());
+      isMounted = false;
+      if (subscriptionTimeout) clearTimeout(subscriptionTimeout);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
@@ -142,47 +195,80 @@ export default function BookmarkList() {
 
   return (
     <div className="space-y-4">
-      {bookmarks.map((b) => (
-        <div
-          key={b.id}
-          className="group card p-5 hover:border-indigo-300 hover:-translate-y-1 bg-gradient-to-br from-slate-50 to-slate-100 hover:from-indigo-50 hover:to-blue-50"
-        >
-          <div className="flex justify-between items-start gap-4">
-            {/* Left section - Title and URL */}
-            <div className="flex-1 min-w-0">
-              <a
-                href={b.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-base font-bold text-indigo-600 hover:text-indigo-700 group/link transition-colors"
-                title={b.title}
+      {/* Sync status indicator */}
+      {lastSynced && (
+        <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg text-xs text-green-700">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <span className="font-medium">Real-time synced</span>
+          </div>
+          <span className="text-green-600">{lastSynced.toLocaleTimeString()}</span>
+        </div>
+      )}
+
+      {/* Syncing indicator */}
+      {syncing && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg text-xs text-blue-700">
+          <span className="inline-block animate-spin">⟳</span>
+          <span className="font-medium">Syncing...</span>
+        </div>
+      )}
+
+      {/* Bookmarks list */}
+      <div className="space-y-3">
+        {bookmarks.map((b) => (
+          <div
+            key={b.id}
+            className={`group card p-5 hover:border-indigo-300 hover:-translate-y-1 transition-all duration-300 ${
+              newBookmarkId === b.id
+                ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300 ring-2 ring-green-200 ring-offset-2 animate-fade-in-up'
+                : 'bg-gradient-to-br from-slate-50 to-slate-100 hover:from-indigo-50 hover:to-blue-50'
+            }`}
+          >
+            <div className="flex justify-between items-start gap-4">
+              {/* Left section - Title and URL */}
+              <div className="flex-1 min-w-0">
+                <a
+                  href={b.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-base font-bold text-indigo-600 hover:text-indigo-700 group/link transition-colors"
+                  title={b.title}
+                >
+                  <span className="text-lg">🔗</span>
+                  <span className="line-clamp-1 group-hover/link:underline">{b.title}</span>
+                </a>
+                <p className="text-xs text-slate-500 mt-2 truncate line-clamp-1 pl-6" title={b.url}>
+                  {b.url.replace(/https?:\/\/(www\.)?/, '')}
+                </p>
+              </div>
+
+              {/* Right section - Delete button */}
+              <button
+                onClick={() => deleteBookmark(b.id)}
+                disabled={deletingId === b.id}
+                className="flex-shrink-0 p-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 disabled:text-slate-300 disabled:cursor-not-allowed transition-all opacity-100 group-hover:opacity-100"
+                title="Delete bookmark"
               >
-                <span className="text-lg">🔗</span>
-                <span className="line-clamp-1 group-hover/link:underline">{b.title}</span>
-              </a>
-              <p className="text-xs text-slate-500 mt-2 truncate line-clamp-1 pl-6" title={b.url}>
-                {b.url.replace(/https?:\/\/(www\.)?/, '')}
-              </p>
+                {deletingId === b.id ? (
+                  <span className="inline-block animate-spin text-lg">⏳</span>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+              </button>
             </div>
 
-            {/* Right section - Delete button */}
-            <button
-              onClick={() => deleteBookmark(b.id)}
-              disabled={deletingId === b.id}
-              className="flex-shrink-0 p-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 disabled:text-slate-300 disabled:cursor-not-allowed transition-all opacity-100 group-hover:opacity-100"
-              title="Delete bookmark"
-            >
-              {deletingId === b.id ? (
-                <span className="inline-block animate-spin text-lg">⏳</span>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              )}
-            </button>
+            {/* New bookmark indicator */}
+            {newBookmarkId === b.id && (
+              <div className="mt-3 text-sm font-medium text-green-700 flex items-center gap-1">
+                <span>✨</span> Added just now
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
